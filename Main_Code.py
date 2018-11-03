@@ -1,8 +1,8 @@
 import datetime, os, pytesseract, cv2, sqlite3, numpy as np
 from dateutil.relativedelta import relativedelta
 import label_functions as f
-Path="C:\\Users\\10134838\\Desktop\\Images" # this is the folder containing images
-dbPath="C:\\Users\\10134838\\Desktop\\prodDB.db" # path to product database
+Path="C:\\Users\\username\\Desktop\\Images" # this is the folder containing images
+dbPath="C:\\Users\\username\\Desktop\\prodDB.db" # path to product database
 conn = sqlite3.connect(dbPath)
 c=conn.cursor()
 imgPath=f.getPath(Path)

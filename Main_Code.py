@@ -1,28 +1,40 @@
-import datetime, os, pytesseract, cv2, sqlite3, numpy as np
-from dateutil.relativedelta import relativedelta
-import label_functions as f
-Path="C:\\Users\\username\\Desktop\\Images" # this is the folder containing images
-dbPath="C:\\Users\\username\\Desktop\\prodDB.db" # path to product database
-conn = sqlite3.connect(dbPath)
-c=conn.cursor()
-imgPath=f.getPath(Path)
-txt=(f.getTxt(imgPath)).upper()
-# check manufacturing date
-d=datetime.datetime.now()
-TodayDate="%(yr)s-%(mon)s-%(day)s" %{'yr':d.year, 'mon':d.month, 'day':d.day}
-isMfgDateCorr= txt.find(TodayDate)!=-1 # if today's date is not in the text, it returns -1
-try:#Identify the product catalog number
-    CatNumIndex=txt.index("515")
-    CatNum=txt[CatNumIndex:CatNumIndex+6]
-except:
-    msg='''No cat# starting with 515'''
-    f.disp(msg, imgPath)
-prodInfo=f.prod(CatNum, c)# get the attributes of the product from database
-expDate=d+relativedelta(months=+prodInfo.shelfLife) # calculate expiry date as datetime object
-ExpDate="%(yr)s-%(mon)s-%(day)s" %{'yr':expDate.year, 'mon':expDate.month, 'day':expDate.day}# convert to YYYY-MM-DD
-isExpDateCorr= txt.find(ExpDate) !=-1# check if expiry date is correct
-isDescCorr=txt.find(prodInfo.descr) !=-1# check if catNum matches the product description
-isSymbCorr=txt.find(prodInfo.symbol) !=-1# check if catNum matches the symbol
-msg=f.getMsg(isMfgDateCorr, isExpDateCorr, isDescCorr, isSymbCorr)# Get the final message (decision)
-f.disp(msg, imgPath) # Display mssage on image
-conn.close()
+# Continously check the folder for new images.
+# Perform inspection when a new imge is uploaded to the folder. 
+
+import os
+
+import inspection
+
+# Update these paths if necessary   
+img_dir = ""
+db_path = ""
+
+def img_newest(img_dir):
+    # Return the path to the most recent image in the img_dir directory
+
+    img_lst = [os.path.join(img_dir,f) for f in os.listdir(img_dir)]
+    img_lst = list(filter(os.path.isfile, img_lst))
+    img_lst.sort(key=os.path.getctime, reverse=True)
+    cleanup(img_lst)
+    img_newest = img_lst[0]
+    return img_newest
+
+def cleanup(img_lst, ct_max=100, ct_min=50):
+    # Delete older images to free up memory.
+    # Parameters:
+    #   img_lst: Paths to all images in the directory
+    #   ct_max, ct_min: min and max number of images allowed in directory
+
+    if len(img_lst) > ct_max:
+        for image in img_lst[ct_min:]:
+            os.remove(image)
+
+inspected=''
+
+# Inspect newly uploaded images in img_dir directory.
+while True:
+    img = img_newest(img_dir)
+    if img != inspected:
+        inspection.inspect(img)
+        inspected = img
+
